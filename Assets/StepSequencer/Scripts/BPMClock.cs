@@ -13,7 +13,7 @@ public class BPMClock : MonoBehaviour
     public int echoBounceCount = 4;
 
     [Header("References")]
-    public StepSequencerUI sequencer;
+    public StepSequencer_Manager sequencer;
     public PolyphonicVoiceManager sampler;
 
     private AudioEchoFilter echoFilter;
@@ -178,7 +178,7 @@ public class BPMClock : MonoBehaviour
 
     void TriggerStep(int step)
     {
-        for (int v = 0; v < StepSequencerUI.Voices; v++)
+        for (int v = 0; v < StepSequencer_Manager.Voices; v++)
         {
             if (sequencer.IsStepActive(v, step))
             {

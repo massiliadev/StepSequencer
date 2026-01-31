@@ -432,7 +432,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1001 &5151744085968166106
+--- !u!1001 &468280244410520159
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -443,10 +443,6 @@ PrefabInstance:
     - target: {fileID: 3040437810286191786, guid: 14e99b37ec728434086bb2d17ef73fd7, type: 3}
       propertyPath: m_Name
       value: StepSequencer
-      objectReference: {fileID: 0}
-    - target: {fileID: 4828664646945821715, guid: 14e99b37ec728434086bb2d17ef73fd7, type: 3}
-      propertyPath: isUIVisible
-      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7590110264352084014, guid: 14e99b37ec728434086bb2d17ef73fd7, type: 3}
       propertyPath: m_LocalPosition.x
@@ -488,10 +484,6 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 8885081329362600304, guid: 14e99b37ec728434086bb2d17ef73fd7, type: 3}
-      propertyPath: bpm
-      value: 90
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -504,4 +496,4 @@ SceneRoots:
   - {fileID: 330585546}
   - {fileID: 410087041}
   - {fileID: 832575519}
-  - {fileID: 5151744085968166106}
+  - {fileID: 468280244410520159}
