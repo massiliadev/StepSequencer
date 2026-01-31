@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using System.Xml.Serialization;
 using Unity.VisualScripting;
@@ -31,12 +32,14 @@ public class StepSequencer_Manager : MonoBehaviour
     public const int Voices = 6;
     public const int Steps = 16;
 
-    public StepData[,] StepPatterns = null;
-
     // Internals
     private BPMClock BPMMaster;
 
+    private StepData[,] StepPatterns = null;
+
     private static string SequencePath = "StepSequencer/Sequences";
+    private static string SequenceExt = "xml";
+    private List<string> SequenceList;
 
     #endregion
 
@@ -45,6 +48,7 @@ public class StepSequencer_Manager : MonoBehaviour
     void Awake()
     {
         CreateDefaultStepData();
+        PopulateSequenceList();
 
         BPMMaster = GameObject.FindAnyObjectByType<BPMClock>();
 
@@ -85,9 +89,22 @@ public class StepSequencer_Manager : MonoBehaviour
         }
     }
 
+    private void PopulateSequenceList()
+    {
+        SequenceList = new List<string>();
+
+        DirectoryInfo sequenceDir = new DirectoryInfo($"{Application.dataPath}/{SequencePath}/");
+        if (sequenceDir.Exists)
+        {
+            var files = sequenceDir.EnumerateFiles($"*.{SequenceExt}");
+            foreach (var file in files)
+                SequenceList.Add(file.Name);
+        }
+    }
+
     private string makeFilePath(string filename)
     {
-        return Application.dataPath + $"/{SequencePath}/{filename}.xml";
+        return Application.dataPath + $"/{SequencePath}/{filename}";
     }
 
     public void SaveSequence(string filename)
@@ -134,7 +151,7 @@ public class StepSequencer_Manager : MonoBehaviour
                     }
                 }
                 int currentStep = BPMMaster != null ? BPMMaster.CurrentStep() : 0;
-                Debug.Log("Sequence loaded from " + filepath + " at step " + currentStep);
+                Debug.Log($"Sequence {filename} loaded at step {currentStep}");
             }
             else
             {
@@ -177,6 +194,11 @@ public class StepSequencer_Manager : MonoBehaviour
         return BPMMaster?.CurrentStep() ?? -1;
     }
 
+    public List<string> GetSequenceList()
+    {
+        return SequenceList;
+    }
+
     // ---------------- Act ----------------
     public void SetStepActive(int voice, int step, bool nextstate)
     {
@@ -194,9 +216,12 @@ public class StepSequencer_Manager : MonoBehaviour
         }
     }
 
-    public void RequestBPMTransition(float newBPM, string transitionSeqPath, string goalSeqPath)
+    public void RequestBPMTransition(float newBPM, string trsShortName, string outShortName)
     {
-        BPMMaster.RequestBPMTransition(newBPM, transitionSeqPath, goalSeqPath);
+        var transitionFileName = SequenceList.Find(x => x.ContainsInsensitive(trsShortName));
+        var outroFileName = SequenceList.Find(x => x.ContainsInsensitive(outShortName));
+
+        BPMMaster.RequestBPMTransition(newBPM, transitionFileName, outroFileName);
     }
 
     #endregion

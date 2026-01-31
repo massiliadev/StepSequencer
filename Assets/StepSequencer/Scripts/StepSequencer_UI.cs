@@ -20,6 +20,7 @@ public class StepSequencer_UI : MonoBehaviour
     private Vector2 dragStartMousePos;
 
     private StepSequencer_Manager stepSequencerManager;
+    private int selectedSequenceIndex = 0;
 
     #endregion
 
@@ -178,36 +179,26 @@ public class StepSequencer_UI : MonoBehaviour
         float controlPanelWidth = screenWidth - (margin * 2);
         GUILayout.BeginArea(new Rect(margin, controlPanelY, controlPanelWidth, 200));
 
-        // --- Sequence Control Panel ---
-        string[] seqNames = { "seq1", "seq2", "seq3", "seq4" };
+        var sequenceList = stepSequencerManager.GetSequenceList();
+        int count = sequenceList != null ? sequenceList.Count : 0;
 
-        GUILayout.BeginHorizontal();
-
-        for (int i = 0; i < seqNames.Length; i++)
+        if (count > 0)
         {
-            GUILayout.BeginVertical();
-            GUILayout.Label(seqNames[i], GUILayout.Width(80));
+            selectedSequenceIndex = Mathf.Clamp(selectedSequenceIndex, 0, count - 1);
+            string[] names = sequenceList.ToArray();
+            selectedSequenceIndex = GUILayout.SelectionGrid(selectedSequenceIndex, names, Mathf.Min(count, 8), GUILayout.Height(buttonSize));
 
-            // Load button
+            GUILayout.BeginHorizontal();
             if (GUILayout.Button("Load", GUILayout.Width(80), GUILayout.Height(buttonSize)))
             {
-                stepSequencerManager.LoadSequence(seqNames[i]);
+                stepSequencerManager.LoadSequence(sequenceList[selectedSequenceIndex]);
             }
-
-            GUILayout.Space(spacing);
-
-            // Save button
             if (GUILayout.Button("Save", GUILayout.Width(80), GUILayout.Height(buttonSize)))
             {
-                stepSequencerManager.SaveSequence(seqNames[i]);
+                stepSequencerManager.SaveSequence(sequenceList[selectedSequenceIndex]);
             }
-
-            GUILayout.EndVertical();
-
-            GUILayout.Space(groupSpacing);
+            GUILayout.EndHorizontal();
         }
-
-        GUILayout.EndHorizontal();
         GUILayout.Space(groupSpacing);
         
         // Tempo buttons in horizontal layout to fit all
