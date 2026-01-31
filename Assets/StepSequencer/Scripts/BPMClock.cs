@@ -3,6 +3,8 @@ using UnityEngine;
 [RequireComponent(typeof(AudioSource))]
 public class BPMClock : MonoBehaviour
 {
+    #region Members
+
     [Header("Tempo")]
     public float bpm = 120f;
     public int stepsPerBar = 16;
@@ -12,7 +14,7 @@ public class BPMClock : MonoBehaviour
 
     [Header("References")]
     public StepSequencerUI sequencer;
-    public PolyphonicBufferedSampler sampler;
+    public PolyphonicVoiceManager sampler;
 
     private AudioEchoFilter echoFilter;
 
@@ -34,7 +36,9 @@ public class BPMClock : MonoBehaviour
     private int stepCounter = 0;
     private bool mainSequenceLoaded = false;
 
-    // ================= Unity =================
+    #endregion
+
+    #region Behaviour
 
     private void Awake()
     {
@@ -76,7 +80,40 @@ public class BPMClock : MonoBehaviour
         }
     }
 
-    // ================= Callbacks =================
+    #endregion
+
+    #region Public Methods
+
+    /// <summary>
+    /// Request a BPM transition
+    /// </summary>
+    /// <param name="newBPM">BPM targeted</param>
+    /// <param name="transitionSeqPath">sequence to use as transition</param>
+    /// <param name="goalSeqPath">sequence to play after transition</param>
+    public void RequestBPMTransition(float newBPM, string transitionSeqPath, string goalSeqPath)
+    {
+        targetBPM = newBPM;
+        transitionSequencePath = transitionSeqPath;
+        mainSequencePath = goalSeqPath;
+
+        bpmTransitionActive = true;
+        bpmTransitionInitialized = false;
+        mainSequenceLoaded = false;
+        stepCounter = 0;
+    }
+
+    /// <summary>
+    /// Return current step.
+    /// </summary>
+    /// <returns></returns>
+    public int CurrentStep()
+    {
+        return currentStep;
+    }
+
+    #endregion
+
+    #region Private Methods
 
     void OnBarStart()
     {
@@ -119,36 +156,17 @@ public class BPMClock : MonoBehaviour
         // BPM interpolation step-by-step
         float t = stepCounter / (float)stepsPerBar; // 0 → 1 over the morph bar
         bpm = Mathf.Lerp(startBPM, targetBPM, t);
+
         UpdateFromBPM();
 
         stepCounter++;
-    }
-
-    // ================= Public API =================
-
-    /// <summary>
-    /// Request a BPM change that:
-    /// 1) Starts at the next bar.
-    /// 2) Plays the transition sequence for that bar.
-    /// 3) Morphs BPM step-by-step over that bar.
-    /// 4) Loads the main sequence at the following bar.
-    /// </summary>
-    public void RequestBPMChange(float newBPM, string transitionSeqPath, string mainSeqPath)
-    {
-        targetBPM = newBPM;
-        transitionSequencePath = transitionSeqPath;
-        mainSequencePath = mainSeqPath;
-
-        bpmTransitionActive = true;
-        bpmTransitionInitialized = false;
-        mainSequenceLoaded = false;
-        stepCounter = 0;
     }
 
     // ================= Helpers =================
 
     void UpdateFromBPM()
     {
+        // adjust echofilter (if any) so it produce 3 bounces, adjusted to BPM.
         if (echoFilter != null)
         {
             echoFilter.delay = 60000.0f / bpm;
@@ -169,8 +187,6 @@ public class BPMClock : MonoBehaviour
             }
         }
     }
-    public int CurrentStep()
-    {
-        return currentStep;
-    }
+
+    #endregion
 }

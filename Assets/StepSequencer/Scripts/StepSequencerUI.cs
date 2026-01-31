@@ -4,8 +4,7 @@ using System.Xml.Serialization;
 
 public class StepSequencerUI : MonoBehaviour
 {
-    public const int Voices = 6;
-    public const int Steps = 16;
+    #region Inner Classes
 
     // Step data class with trigger and pitch
     [System.Serializable]
@@ -22,15 +21,23 @@ public class StepSequencerUI : MonoBehaviour
         }
     }
 
-    public StepData[,] pattern = new StepData[Voices, Steps];
+    #endregion
 
+    #region Members
+
+    [Header("Audio")]
+
+    public const int Voices = 6;
+    public const int Steps = 16;
+
+    public StepData[,] StepPatterns = null;
+
+    [Header("UI")]
+
+    // Dimensions
     public int buttonSize = 32;
     public int spacing = 6;
     public int groupSpacing = 16;
-
-    public bool visibleUI = false;
-
-    public BPMClock BPMMaster;
 
     // Drag state for pitch adjustment
     private int draggingVoice = -1;
@@ -38,20 +45,38 @@ public class StepSequencerUI : MonoBehaviour
     private float dragStartPitch;
     private Vector2 dragStartMousePos;
 
+    public bool isUIVisible = false;
+
+    // Internals
+    private BPMClock BPMMaster;
     private static string SequencePath = "StepSequencer/Sequences";
+
+    #endregion
+
+    #region Behaviour
 
     void Awake()
     {
-        // Initialize pattern array with default StepData
-        for (int v = 0; v < Voices; v++)
+        CreateStepData();
+
+        BPMMaster = GameObject.FindAnyObjectByType<BPMClock>();
+        if (BPMMaster == null)
         {
-            for (int s = 0; s < Steps; s++)
-            {
-                if (pattern[v, s] == null)
-                    pattern[v, s] = new StepData(false, 0.5f);
-            }
+            Debug.LogError("StepSequencerUI was unable to find a BPMClock in scene");
         }
     }
+
+    void OnGUI()
+    {
+        if (isUIVisible)
+        {
+            ProduceUI();
+        }
+    }
+
+    #endregion
+
+    #region XML
 
     // ---------------- XML Save / Load ----------------
     [System.Serializable]
@@ -92,7 +117,7 @@ public class StepSequencerUI : MonoBehaviour
         SequenceData seq = new SequenceData(Voices, Steps);
         for (int v = 0; v < Voices; v++)
             for (int s = 0; s < Steps; s++)
-                seq.pattern[v][s] = new StepData(pattern[v, s].trigger, pattern[v, s].pitch);
+                seq.pattern[v][s] = new StepData(StepPatterns[v, s].trigger, StepPatterns[v, s].pitch);
 
         XmlSerializer serializer = new XmlSerializer(typeof(SequenceData));
         using (FileStream stream = new FileStream(filepath, FileMode.Create))
@@ -123,9 +148,9 @@ public class StepSequencerUI : MonoBehaviour
                     for (int s = 0; s < Steps && s < seq.pattern[v].Length; s++)
                     {
                         if (seq.pattern[v][s] != null)
-                            pattern[v, s] = new StepData(seq.pattern[v][s].trigger, seq.pattern[v][s].pitch);
+                            StepPatterns[v, s] = new StepData(seq.pattern[v][s].trigger, seq.pattern[v][s].pitch);
                         else
-                            pattern[v, s] = new StepData(false, 0.5f);
+                            StepPatterns[v, s] = new StepData(false, 0.5f);
                     }
                 }
                 int currentStep = BPMMaster != null ? BPMMaster.CurrentStep() : 0;
@@ -142,12 +167,12 @@ public class StepSequencerUI : MonoBehaviour
         }
     }
 
-    // ---------------- UI ----------------
-    void OnGUI()
-    {
-        if (!visibleUI)
-            return;
+    #endregion
 
+    #region UI Producer
+
+    void ProduceUI()
+    {
         Event currentEvent = Event.current;
         
         // Use full screen width with margins
@@ -191,12 +216,12 @@ public class StepSequencerUI : MonoBehaviour
                 if (s % 4 == 0 && s != 0) currentX += groupSpacing;
 
                 if (s == BPMMaster.CurrentStep())
-                    GUI.color = pattern[v, s].trigger ? Color.yellow : Color.grey;
+                    GUI.color = StepPatterns[v, s].trigger ? Color.yellow : Color.grey;
                 else
-                    GUI.color = pattern[v, s].trigger ? Color.red : Color.black;
+                    GUI.color = StepPatterns[v, s].trigger ? Color.red : Color.black;
 
                 // Button height based on pitch (0.0 to 1.0 maps to buttonSize/4 to buttonSize)
-                float h = Mathf.Lerp(buttonSize / 4f, buttonSize, pattern[v, s].pitch);
+                float h = Mathf.Lerp(buttonSize / 4f, buttonSize, StepPatterns[v, s].pitch);
                 float buttonY = rowY + (rowHeight - h) / 2f; // Center vertically
 
                 Rect buttonRect = new Rect(currentX, buttonY, actualButtonSize, h);
@@ -209,7 +234,7 @@ public class StepSequencerUI : MonoBehaviour
                         // Start drag
                         draggingVoice = v;
                         draggingStep = s;
-                        dragStartPitch = pattern[v, s].pitch;
+                        dragStartPitch = StepPatterns[v, s].pitch;
                         dragStartMousePos = localMousePos;
                         currentEvent.Use();
                     }
@@ -221,7 +246,7 @@ public class StepSequencerUI : MonoBehaviour
                             // If we didn't drag much, toggle trigger
                             if (Vector2.Distance(localMousePos, dragStartMousePos) < 5f)
                             {
-                                pattern[v, s].trigger = !pattern[v, s].trigger;
+                                StepPatterns[v, s].trigger = !StepPatterns[v, s].trigger;
                             }
                         }
                         draggingVoice = -1;
@@ -236,7 +261,7 @@ public class StepSequencerUI : MonoBehaviour
                     float dragDelta = dragStartMousePos.y - localMousePos.y; // Inverted: drag up = increase pitch
                     float sensitivity = 0.01f; // Adjust this to change drag sensitivity
                     float newPitch = dragStartPitch + (dragDelta * sensitivity);
-                    pattern[v, s].pitch = Mathf.Clamp01(newPitch);
+                    StepPatterns[v, s].pitch = Mathf.Clamp01(newPitch);
                     currentEvent.Use();
                 }
 
@@ -246,18 +271,18 @@ public class StepSequencerUI : MonoBehaviour
                     // This handles clicks when not dragging
                     if (draggingVoice != v || draggingStep != s)
                     {
-                        pattern[v, s].trigger = !pattern[v, s].trigger;
+                        StepPatterns[v, s].trigger = !StepPatterns[v, s].trigger;
                     }
                 }
 
                 // Draw pitch value (0-12 semitones) inside button
-                int semitones = Mathf.RoundToInt(pattern[v, s].pitch * 12f);
+                int semitones = Mathf.RoundToInt(StepPatterns[v, s].pitch * 12f);
                 string pitchText = semitones.ToString();
                 
                 // Use a style for the text
                 GUIStyle textStyle = new GUIStyle(GUI.skin.label);
                 textStyle.alignment = TextAnchor.MiddleCenter;
-                textStyle.normal.textColor = pattern[v, s].trigger ? Color.white : Color.grey;
+                textStyle.normal.textColor = StepPatterns[v, s].trigger ? Color.white : Color.grey;
                 textStyle.fontSize = Mathf.Max(8, Mathf.RoundToInt(actualButtonSize * 0.4f)); // Scale font with button size
                 
                 GUI.Label(buttonRect, pitchText, textStyle);
@@ -322,22 +347,26 @@ public class StepSequencerUI : MonoBehaviour
         GUILayout.EndArea();
     }
 
+    #endregion
+
+    #region Public Methods
+
     // ---------------- Access ----------------
     public bool IsStepActive(int voice, int step)
     {
-        return pattern[voice, step].trigger;
+        return StepPatterns[voice, step].trigger;
     }
 
     public float GetStepPitch(int voice, int step)
     {
-        return pattern[voice, step].pitch;
+        return StepPatterns[voice, step].pitch;
     }
 
     public void AddTempoRequestButton(int bpm, int outro = 1, int transit = 2)
     {
         if (GUILayout.Button($"Request Change {bpm}"))
         {
-            BPMMaster.RequestBPMChange(
+            BPMMaster.RequestBPMTransition(
                     bpm,
                     $"Seq{transit}",
                     $"Seq{outro}");
@@ -345,4 +374,25 @@ public class StepSequencerUI : MonoBehaviour
             GUILayout.Space(spacing);
         }
     }
+
+    #endregion
+
+    #region Private Methods
+
+    private void CreateStepData()
+    {
+        StepPatterns = new StepData[Voices, Steps];
+
+        // Initialize pattern array with default StepData
+        for (int v = 0; v < Voices; v++)
+        {
+            for (int s = 0; s < Steps; s++)
+            {
+                if (StepPatterns[v, s] == null)
+                    StepPatterns[v, s] = new StepData(false, 0.5f);
+            }
+        }
+    }
+
+    #endregion
 }

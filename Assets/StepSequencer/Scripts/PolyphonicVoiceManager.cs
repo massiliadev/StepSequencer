@@ -2,8 +2,10 @@ using UnityEngine;
 using System.Collections.Generic;
 
 [RequireComponent(typeof(AudioSource))]
-public class PolyphonicBufferedSampler : MonoBehaviour
+public class PolyphonicVoiceManager : MonoBehaviour
 {
+    #region Inner Classes
+
     [System.Serializable]
     public class Sample
     {
@@ -14,6 +16,20 @@ public class PolyphonicBufferedSampler : MonoBehaviour
 
         [HideInInspector] public float[] data;
     }
+
+    class Voice
+    {
+        public float[] data;
+        public float position;        // Changed to float for fractional position (pitch shifting)
+        public bool active;
+        public float gain;
+        public float pitch;           // Pitch value (0-1), converted to frequency multiplier
+        public float pitchMultiplier;  // Frequency multiplier: 2^pitch
+    }
+
+    #endregion
+
+    #region Members
 
     [Header("Samples")]
     public Sample[] samples;
@@ -29,15 +45,9 @@ public class PolyphonicBufferedSampler : MonoBehaviour
 
     private List<Voice> voices = new List<Voice>();
 
-    class Voice
-    {
-        public float[] data;
-        public float position;        // Changed to float for fractional position (pitch shifting)
-        public bool active;
-        public float gain;
-        public float pitch;           // Pitch value (0-1), converted to frequency multiplier
-        public float pitchMultiplier;  // Frequency multiplier: 2^pitch
-    }
+    #endregion
+
+    #region Behaviours
 
     void Start()
     {
@@ -51,6 +61,10 @@ public class PolyphonicBufferedSampler : MonoBehaviour
             }
         }
     }
+
+    #endregion
+
+    #region public Methods
 
     /// <summary>
     /// Trigger a sample by index
@@ -95,6 +109,9 @@ public class PolyphonicBufferedSampler : MonoBehaviour
         voice.active = true;
     }
 
+    #endregion
+
+    #region Private Methods
 
     /// <summary>
     /// Get an available voice or steal the oldest
@@ -116,6 +133,19 @@ public class PolyphonicBufferedSampler : MonoBehaviour
         // Voice stealing: reuse oldest
         return voices[0];
     }
+
+    /// <summary>
+    /// Hyperbolic tangent soft limiter
+    /// </summary>
+    private float Tanh(float x)
+    {
+        float e2x = Mathf.Exp(2f * x);
+        return (e2x - 1f) / (e2x + 1f);
+    }
+
+    #endregion
+
+    #region AudioFilter
 
     /// <summary>
     /// Audio DSP callback
@@ -196,12 +226,5 @@ public class PolyphonicBufferedSampler : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Hyperbolic tangent soft limiter
-    /// </summary>
-    private float Tanh(float x)
-    {
-        float e2x = Mathf.Exp(2f * x);
-        return (e2x - 1f) / (e2x + 1f);
-    }
+    #endregion
 }
