@@ -52,15 +52,6 @@ public class PolyphonicBufferedSampler : MonoBehaviour
         }
     }
 
-    void Update()
-    {
-        // Optional test trigger
-        if (Input.GetKeyDown(KeyCode.Space))
-        {
-            TriggerSample(Random.Range(0, samples.Length));
-        }
-    }
-
     /// <summary>
     /// Trigger a sample by index
     /// </summary>
