@@ -20,11 +20,12 @@ public class PolyphonicVoiceManager : MonoBehaviour
     class Voice
     {
         public float[] data;
-        public float position;        // Changed to float for fractional position (pitch shifting)
+        public float position;        // Fractional position in source frames (for pitch shifting)
         public bool active;
         public float gain;
         public float pitch;           // Pitch value (0-1), converted to frequency multiplier
-        public float pitchMultiplier;  // Frequency multiplier: 2^pitch
+        public float pitchMultiplier; // Frequency multiplier: 2^pitch
+        public float sourceFrequency; // Clip sample rate (Hz) for correct resampling
     }
 
     #endregion
@@ -44,6 +45,7 @@ public class PolyphonicVoiceManager : MonoBehaviour
     public bool normalizeByActiveVoices = true; // prevents overload when many voices play
 
     private List<Voice> voices = new List<Voice>();
+    private float outputSampleRate = 48000f; // Cached; set in Start from AudioSettings
 
     #endregion
 
@@ -51,14 +53,38 @@ public class PolyphonicVoiceManager : MonoBehaviour
 
     void Start()
     {
-        // Load all sample data into memory
+        outputSampleRate = AudioSettings.outputSampleRate;
+
+        // Load all sample data into memory (mono frames for correct pitch and stereo compatibility)
         foreach (var s in samples)
         {
             if (s.clip != null)
-            {
-                s.data = new float[s.clip.samples];
-                s.clip.GetData(s.data, 0);
-            }
+                LoadSampleAsMonoFrames(s);
+        }
+    }
+
+    /// <summary>Load clip into s.data as mono frames (one sample per time step) for correct resampling and stereo handling.</summary>
+    private void LoadSampleAsMonoFrames(Sample s)
+    {
+        var clip = s.clip;
+        int totalSamples = clip.samples;
+        int channels = clip.channels;
+        int frameCount = totalSamples / channels;
+
+        s.data = new float[frameCount];
+        if (channels == 1)
+        {
+            clip.GetData(s.data, 0);
+            return;
+        }
+        float[] interleaved = new float[totalSamples];
+        clip.GetData(interleaved, 0);
+        for (int f = 0; f < frameCount; f++)
+        {
+            float sum = 0f;
+            for (int c = 0; c < channels; c++)
+                sum += interleaved[f * channels + c];
+            s.data[f] = sum / channels;
         }
     }
 
@@ -85,6 +111,9 @@ public class PolyphonicVoiceManager : MonoBehaviour
 
         Voice voice;
 
+        float freq = sample.clip != null ? sample.clip.frequency : outputSampleRate;
+        float mult = Mathf.Pow(2f, pitch); // 2^pitch: 0->1.0, 1->2.0 (one octave)
+
         if (!sample.allowPolyphony)
         {
             // Check if a voice with this sample is already active
@@ -94,7 +123,8 @@ public class PolyphonicVoiceManager : MonoBehaviour
                 // Restart previous instance
                 voice.position = 0f;
                 voice.pitch = pitch;
-                voice.pitchMultiplier = Mathf.Pow(2f, pitch); // 2^pitch: 0->1.0, 1->2.0
+                voice.pitchMultiplier = mult;
+                voice.sourceFrequency = freq;
                 return; // do not create a new voice
             }
         }
@@ -105,7 +135,8 @@ public class PolyphonicVoiceManager : MonoBehaviour
         voice.gain = sample.gain;
         voice.position = 0f;
         voice.pitch = pitch;
-        voice.pitchMultiplier = Mathf.Pow(2f, pitch); // 2^pitch: 0->1.0, 1->2.0
+        voice.pitchMultiplier = mult;
+        voice.sourceFrequency = freq;
         voice.active = true;
     }
 
@@ -203,8 +234,9 @@ public class PolyphonicVoiceManager : MonoBehaviour
                     sampleValue *= fadeIndex / (float)fadeOutSamples;
                 }
 
-                // Advance position by pitch multiplier (resampling)
-                voice.position += voice.pitchMultiplier;
+                // Advance position by pitch multiplier, scaled by source vs output sample rate for correct pitch
+                float advance = voice.pitchMultiplier * (voice.sourceFrequency / outputSampleRate);
+                voice.position += advance;
 
                 // Apply gain (master + optional normalization)
                 float gain = masterGain * voice.gain;
