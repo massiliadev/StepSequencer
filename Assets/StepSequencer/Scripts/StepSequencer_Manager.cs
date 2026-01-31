@@ -23,6 +23,15 @@ public class StepSequencer_Manager : MonoBehaviour
         }
     }
 
+    /// <summary>Preset for a BPM transition: target BPM and short names for transition/outro sequences.</summary>
+    [System.Serializable]
+    public class BPMTransitionPreset
+    {
+        public float bpm = 120f;
+        public string transitionShortName = "Seq2";
+        public string outroShortName = "Seq1";
+    }
+
     #endregion
 
     #region Members
@@ -41,6 +50,10 @@ public class StepSequencer_Manager : MonoBehaviour
     private static string SequenceExt = "xml";
     private List<string> SequenceList;
 
+    [Header("BPM Transitions")]
+    [Tooltip("Presets for tempo change buttons; transition/outro short names are matched against sequence file names (case-insensitive).")]
+    public List<BPMTransitionPreset> transitionList = new List<BPMTransitionPreset>();
+
     #endregion
 
     #region Behaviour
@@ -49,6 +62,7 @@ public class StepSequencer_Manager : MonoBehaviour
     {
         CreateDefaultStepData();
         PopulateSequenceList();
+        EnsureDefaultTransitions();
 
         BPMMaster = GameObject.FindAnyObjectByType<BPMClock>();
 
@@ -199,6 +213,11 @@ public class StepSequencer_Manager : MonoBehaviour
         return SequenceList;
     }
 
+    public List<BPMTransitionPreset> GetTransitionList()
+    {
+        return transitionList;
+    }
+
     // ---------------- Act ----------------
     public void SetStepActive(int voice, int step, bool nextstate)
     {
@@ -241,6 +260,19 @@ public class StepSequencer_Manager : MonoBehaviour
                     StepPatterns[v, s] = new StepData(false, 0.5f);
             }
         }
+    }
+
+    private void EnsureDefaultTransitions()
+    {
+        if (transitionList != null && transitionList.Count > 0) return;
+        transitionList = new List<BPMTransitionPreset>
+        {
+            new BPMTransitionPreset { bpm = 80f,  transitionShortName = "Seq2", outroShortName = "Seq1" },
+            new BPMTransitionPreset { bpm = 100f, transitionShortName = "Seq2", outroShortName = "Seq4" },
+            new BPMTransitionPreset { bpm = 120f, transitionShortName = "Seq2", outroShortName = "Seq4" },
+            new BPMTransitionPreset { bpm = 140f, transitionShortName = "Seq2", outroShortName = "Seq1" },
+            new BPMTransitionPreset { bpm = 160f, transitionShortName = "Seq2", outroShortName = "Seq3" }
+        };
     }
 
     #endregion

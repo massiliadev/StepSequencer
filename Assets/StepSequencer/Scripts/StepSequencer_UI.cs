@@ -201,29 +201,28 @@ public class StepSequencer_UI : MonoBehaviour
         }
         GUILayout.Space(groupSpacing);
         
-        // Tempo buttons in horizontal layout to fit all
+        // Tempo buttons from manager's transition list
         GUILayout.BeginHorizontal();
-
-        CreateRequestChangeButton(80,   1);
-        CreateRequestChangeButton(100,  4);
-        CreateRequestChangeButton(120,  4);
-        CreateRequestChangeButton(140,  1);
-        CreateRequestChangeButton(160,  3);
-
+        var transitionList = stepSequencerManager.GetTransitionList();
+        if (transitionList != null)
+        {
+            foreach (var preset in transitionList)
+                CreateRequestChangeButton(preset);
+        }
         GUILayout.EndHorizontal();
 
         GUILayout.EndArea();
     }
 
-    public void CreateRequestChangeButton(int bpm, int outro = 1, int transit = 2)
+    public void CreateRequestChangeButton(StepSequencer_Manager.BPMTransitionPreset preset)
     {
-        if (GUILayout.Button($"Request Change {bpm}"))
+        if (preset == null) return;
+        if (GUILayout.Button($"Request Change {preset.bpm}"))
         {
             stepSequencerManager.RequestBPMTransition(
-                    bpm,
-                    $"Seq{transit}",
-                    $"Seq{outro}");
-
+                    preset.bpm,
+                    preset.transitionShortName,
+                    preset.outroShortName);
             GUILayout.Space(spacing);
         }
     }
