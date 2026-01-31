@@ -444,6 +444,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: StepSequencer
       objectReference: {fileID: 0}
+    - target: {fileID: 4828664646945821715, guid: 14e99b37ec728434086bb2d17ef73fd7, type: 3}
+      propertyPath: visibleUI
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7216375517336730710, guid: 14e99b37ec728434086bb2d17ef73fd7, type: 3}
+      propertyPath: m_Resource
+      value: 
+      objectReference: {fileID: 0}
     - target: {fileID: 7590110264352084014, guid: 14e99b37ec728434086bb2d17ef73fd7, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0

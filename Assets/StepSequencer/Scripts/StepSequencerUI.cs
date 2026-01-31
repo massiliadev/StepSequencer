@@ -28,6 +28,8 @@ public class StepSequencerUI : MonoBehaviour
     public int spacing = 6;
     public int groupSpacing = 16;
 
+    public bool visibleUI = false;
+
     public BPMClock BPMMaster;
 
     // Drag state for pitch adjustment
@@ -78,28 +80,37 @@ public class StepSequencerUI : MonoBehaviour
         }
     }
 
-    public void SaveSequence(string path)
+    private string makeFilePath(string filename)
     {
+        return Application.dataPath + $"/{SequencePath}/{filename}.xml";
+    }
+
+    public void SaveSequence(string filename)
+    {
+        string filepath = makeFilePath(filename);
+
         SequenceData seq = new SequenceData(Voices, Steps);
         for (int v = 0; v < Voices; v++)
             for (int s = 0; s < Steps; s++)
                 seq.pattern[v][s] = new StepData(pattern[v, s].trigger, pattern[v, s].pitch);
 
         XmlSerializer serializer = new XmlSerializer(typeof(SequenceData));
-        using (FileStream stream = new FileStream(path, FileMode.Create))
+        using (FileStream stream = new FileStream(filepath, FileMode.Create))
             serializer.Serialize(stream, seq);
-        Debug.Log("Sequence saved to " + path);
+        Debug.Log("Sequence saved to " + filepath);
     }
 
-    public void LoadSequence(string path)
+    public void LoadSequence(string filename)
     {
-        if (!File.Exists(path)) { Debug.LogWarning("File not found: " + path); return; }
+        string filepath = makeFilePath(filename);
+
+        if (!File.Exists(filepath)) { Debug.LogWarning("File not found: " + filepath); return; }
 
         try
         {
             XmlSerializer serializer = new XmlSerializer(typeof(SequenceData));
             SequenceData seq = null;
-            using (FileStream stream = new FileStream(path, FileMode.Open))
+            using (FileStream stream = new FileStream(filepath, FileMode.Open))
             {
                 seq = serializer.Deserialize(stream) as SequenceData;
             }
@@ -118,22 +129,25 @@ public class StepSequencerUI : MonoBehaviour
                     }
                 }
                 int currentStep = BPMMaster != null ? BPMMaster.CurrentStep() : 0;
-                Debug.Log("Sequence loaded from " + path + " at step " + currentStep);
+                Debug.Log("Sequence loaded from " + filepath + " at step " + currentStep);
             }
             else
             {
-                Debug.LogWarning("Sequence file is empty or invalid: " + path);
+                Debug.LogWarning("Sequence file is empty or invalid: " + filepath);
             }
         }
         catch (System.Exception e)
         {
-            Debug.LogError("Failed to load sequence from " + path + ": " + e.Message);
+            Debug.LogError("Failed to load sequence from " + filepath + ": " + e.Message);
         }
     }
 
     // ---------------- UI ----------------
     void OnGUI()
     {
+        if (!visibleUI)
+            return;
+
         Event currentEvent = Event.current;
         
         // Use full screen width with margins
@@ -274,8 +288,7 @@ public class StepSequencerUI : MonoBehaviour
             // Load button
             if (GUILayout.Button("Load", GUILayout.Width(80), GUILayout.Height(buttonSize)))
             {
-                string path = Application.dataPath + $"/{SequencePath}/{seqNames[i]}.xml";
-                LoadSequence(path);
+                LoadSequence(seqNames[i]);
             }
 
             GUILayout.Space(spacing);
@@ -283,8 +296,8 @@ public class StepSequencerUI : MonoBehaviour
             // Save button
             if (GUILayout.Button("Save", GUILayout.Width(80), GUILayout.Height(buttonSize)))
             {
-                string path = Application.dataPath + $"/{SequencePath}/{seqNames[i]}.xml";
-                SaveSequence(path);
+
+                SaveSequence(seqNames[i]);
             }
 
             GUILayout.EndVertical();
@@ -326,8 +339,8 @@ public class StepSequencerUI : MonoBehaviour
         {
             BPMMaster.RequestBPMChange(
                     bpm,
-                    Application.dataPath + $"/Sequences/seq{transit}.xml",
-                    Application.dataPath + $"/Sequences/seq{outro}.xml");
+                    $"Seq{transit}",
+                    $"Seq{outro}");
 
             GUILayout.Space(spacing);
         }
