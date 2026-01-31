@@ -199,13 +199,11 @@ public class StepSequencer_Manager : MonoBehaviour
         BPMMaster.RequestBPMTransition(newBPM, transitionSeqPath, goalSeqPath);
     }
 
-    public
-
     #endregion
 
     #region Private Methods
 
-    void CreateDefaultStepData()
+    private void CreateDefaultStepData()
     {
         StepPatterns = new StepData[Voices, Steps];
 
